@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2563EB">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Control de Rondines NFC</title>
+
+    <!-- Google Fonts & Tailwind CSS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#EFF6FF',
+                            100: '#DBEAFE',
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8',
+                            900: '#1E3A8A',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pulse-subtle {
+            animation: pulse-ring 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.02); opacity: 0.9; }
+        }
+        .console-log { font-family: 'JetBrains Mono', monospace; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans p-4 sm:p-6 pb-10 antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Main Content -->
+    <main class="max-w-3xl w-full mx-auto space-y-6">
+
+        <!-- Top Card: Control de Vigilancia -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-sm font-bold text-lg">
+                    <i data-lucide="shield-check" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">Control de Vigilancia</h1>
+                    <p class="text-xs text-slate-500 font-medium">Marcación NFC & Diagnóstico Móvil</p>
+                </div>
+            </div>
+            <div id="nfc-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span id="nfc-status-text">Detectando OS...</span>
+            </div>
+        </section>
+
+        <!-- NFC Action Card -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-center relative overflow-hidden">
+            <div class="max-w-sm mx-auto space-y-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-50 text-brand-600 mb-1">
+                    <i data-lucide="radio" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900">Iniciar Marcación de Punto</h2>
+                    <p class="text-xs text-slate-500 mt-1">Acerca el dispositivo a la etiqueta NFC o usa el simulador para pruebas</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button id="btn-scan" onclick="handleScanRequest()" class="py-3.5 px-4 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-semibold rounded-xl shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-2 text-sm pulse-subtle">
+                        <i data-lucide="smartphone-charging" class="w-5 h-5"></i>
+                        Escanear NFC
+                    </button>
+                    <button onclick="simulateNFCScan()" class="py-3.5 px-4 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-semibold rounded-xl transition-all flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="play-circle" class="w-5 h-5 text-brand-600"></i>
+                        Simular Tag (iOS/Dev)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hardware & Compatibility Diagnostics -->
+        <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-2">
+                    <i data-lucide="cpu" class="w-4 h-4 text-brand-600"></i>
+                    Diagnóstico del Dispositivo
+                </h3>
+                <button onclick="runDiagnostics()" class="text-xs text-brand-600 font-semibold hover:underline flex items-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Re-evaluar
+                </button>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs" id="diagnostic-grid">
+                <!-- Dynamic Content -->
+            </div>
+        </section>
+
+        <!-- Last Scan Card -->
+        <section id="last-scan-card" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Último Punto Registrado</span>
+                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Verificado</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <span class="text-xs text-slate-500 block">ID Tag / Punto:</span>
+                    <span id="last-id" class="text-base font-bold text-slate-900 font-mono">--</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-500 block">Fecha y Hora:</span>
+                    <span id="last-time" class="text-sm font-semibold text-slate-700">--</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-500 block">Ubicación GPS:</span>
+                    <span id="last-gps" class="text-sm font-semibold text-slate-700 font-mono">--</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- History Table -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Historial de Rondín</h3>
+                    <p class="text-xs text-slate-500">Últimas marcaciones guardadas localmente</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportToCSV()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5">
+                        <i data-lucide="file-spread-sheet" class="w-4 h-4"></i> CSV
+                    </button>
+                    <button onclick="clearHistory()" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-semibold rounded-lg transition-colors">
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-50 border-b border-slate-100 text-xs text-slate-500 uppercase tracking-wider">
+                        <tr>
+                            <th class="px-5 py-3 font-semibold">ID / Serial NFC</th>
+                            <th class="px-5 py-3 font-semibold">Fecha / Hora</th>
+                            <th class="px-5 py-3 font-semibold">Coordenadas GPS</th>
+                            <th class="px-5 py-3 font-semibold text-right">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" class="divide-y divide-slate-100">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Live Console Log -->
+        <section class="bg-slate-900 rounded-2xl p-4 text-white shadow-md space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <span class="text-xs font-mono text-slate-400 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Consola de Depuración Móvil
+                </span>
+                <button onclick="clearLogs()" class="text-[11px] font-mono text-slate-400 hover:text-white underline">
+                    Limpiar Log
+                </button>
+            </div>
+            <div id="console-output" class="console-log text-[11px] h-36 overflow-y-auto space-y-1.5 text-slate-300">
+                <div class="text-slate-500">[Sistema] Aplicación iniciada correctamente...</div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 left-5 sm:left-auto sm:w-96 bg-slate-900 text-white p-4 rounded-xl shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div id="toast-icon" class="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                ✓
+            </div>
+            <div>
+                <p id="toast-title" class="text-sm font-semibold">Marcación Registrada</p>
+                <p id="toast-msg" class="text-xs text-slate-300">Punto de control verificado</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'nfc_security_logs_v1';
+        let scanHistory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isAndroid = /Android/.test(navigator.userAgent);
+
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            runDiagnostics();
+            renderTable();
+            if (scanHistory.length > 0) {
+                updateLastScanCard(scanHistory[0]);
+            }
+        });
+
+        function runDiagnostics() {
+            const grid = document.getElementById('diagnostic-grid');
+            const badge = document.getElementById('nfc-badge');
+            const badgeText = document.getElementById('nfc-status-text');
+            grid.innerHTML = '';
+
+            const checks = [
+                { name: 'Entorno Seguro (HTTPS)', ok: window.isSecureContext, detail: location.protocol },
+                { name: 'Soporte Web NFC', ok: 'NDEFReader' in window, detail: 'NDEFReader' in window ? 'Nativo' : 'Simulador' },
+                { name: 'Geolocalización GPS', ok: 'geolocation' in navigator, detail: 'GPS Activo' },
+                { name: 'Almacenamiento Local', ok: checkLocalStorage(), detail: 'localStorage' },
+                { name: 'Vibración / Háptico', ok: 'vibrate' in navigator, detail: 'Haptic Engine' },
+                { name: 'Audio API', ok: !!(window.AudioContext || window.webkitAudioContext), detail: 'AudioContext' }
+            ];
+
+            checks.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border ${item.ok ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900' : 'bg-amber-50/60 border-amber-200 text-amber-900'}`;
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-semibold text-[11px]">${item.name}</span>
+                        <span class="font-bold">${item.ok ? '✓' : '✗'}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-500 font-mono block mt-1">${item.detail}</span>
+                `;
+                grid.appendChild(card);
+            });
+
+            if ('NDEFReader' in window) {
+                badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5";
+                badgeText.innerText = "NFC Nativo Listo";
+            } else {
+                badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1.5";
+                badgeText.innerText = isIOS ? "iOS Mode (Simulado)" : "NFC Simulado";
+            }
+
+            log(`[Info] SO: ${isAndroid ? 'Android' : isIOS ? 'iOS' : 'Desktop'}. Web NFC: ${'NDEFReader' in window ? 'Disponible' : 'No disponible'}`);
+        }
+
+        async function handleScanRequest() {
+            if ('NDEFReader' in window) {
+                try {
+                    const ndef = new NDEFReader();
+                    await ndef.scan();
+                    showToast("Iniciando NFC", "Aproxime la etiqueta al teléfono", "info");
+                    log("[NFC] Esperando lectura de etiqueta física...");
+
+                    ndef.addEventListener("reading", async ({ serialNumber }) => {
+                        let tagContent = serialNumber || "TAG-" + Math.floor(Math.random()*90000 + 10000);
+                        await recordCheckIn(tagContent);
+                    });
+
+                } catch (error) {
+                    log(`[NFC Error] ${error.name}: ${error.message}`);
+                    showToast("Error de acceso", "Permiso de NFC denegado o desactivado", "error");
+                }
+            } else {
+                log("[NFC] Dispositivo sin Web NFC. Usando modo de simulación.");
+                simulateNFCScan();
+            }
+        }
+
+        async function simulateNFCScan() {
+            const mockTags = ["NFC-PT-001 (Almacén Central)", "NFC-PT-002 (Perímetro Norte)", "NFC-PT-003 (Acceso VIP)", "NFC-PT-004 (Torre de Control)"];
+            const randomTag = mockTags[Math.floor(Math.random() * mockTags.length)];
+            await recordCheckIn(randomTag);
+        }
+
+        async function recordCheckIn(tagID) {
+            triggerFeedback();
+            const now = new Date();
+            const formattedDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+            
+            let coords = "Buscando GPS...";
+            try {
+                const pos = await getCurrentLocation();
+                coords = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+            } catch (err) {
+                coords = "GPS no disponible";
+            }
+
+            const record = {
+                id: tagID,
+                timestamp: formattedDate,
+                gps: coords,
+                status: "A tiempo"
+            };
+
+            scanHistory.unshift(record);
+            if (scanHistory.length > 50) scanHistory.pop();
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(scanHistory));
+
+            updateLastScanCard(record);
+            renderTable();
+            showToast("Marcación Exitosa", `${tagID}`, "success");
+            log(`[Éxito] Marcación registrada: ${tagID} [GPS: ${coords}]`);
+        }
+
+        function getCurrentLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject("No soportado");
+                } else {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        timeout: 5000,
+                        enableHighAccuracy: true
+                    });
+                }
+            });
+        }
+
+        function triggerFeedback() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate([80, 40, 80]);
+            }
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) {
+                    const ctx = new AudioCtx();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.15);
+                }
+            } catch (e) {}
+        }
+
+        function updateLastScanCard(record) {
+            document.getElementById('last-scan-card').classList.remove('hidden');
+            document.getElementById('last-id').innerText = record.id;
+            document.getElementById('last-time').innerText = record.timestamp;
+            document.getElementById('last-gps').innerText = record.gps;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = '';
+
+            if (scanHistory.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-5 py-8 text-center text-slate-400 text-xs">
+                            No hay registros de marcación. Inicie un escaneo arriba.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            scanHistory.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-5 py-3.5 font-semibold text-slate-900 font-mono text-xs">${item.id}</td>
+                    <td class="px-5 py-3.5 text-xs text-slate-600">${item.timestamp}</td>
+                    <td class="px-5 py-3.5 text-xs text-slate-500 font-mono">${item.gps}</td>
+                    <td class="px-5 py-3.5 text-xs text-right">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            ${item.status}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportToCSV() {
+            if (scanHistory.length === 0) {
+                showToast("Sin datos", "No hay historial para exportar", "error");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,ID Tag,Fecha Hora,Coordenadas GPS,Estado\n";
+            scanHistory.forEach(row => {
+                csvContent += `"${row.id}","${row.timestamp}","${row.gps}","${row.status}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `reporte_rondin_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            log("[CSV] Reporte de historial descargado.");
+        }
+
+        function clearHistory() {
+            if (confirm("¿Está seguro de borrar el historial local?")) {
+                scanHistory = [];
+                localStorage.removeItem(STORAGE_KEY);
+                renderTable();
+                document.getElementById('last-scan-card').classList.add('hidden');
+                showToast("Historial borrado", "Se han eliminado todos los registros", "info");
+                log("[Limpieza] Historial borrado.");
+            }
+        }
+
+        function checkLocalStorage() {
+            try {
+                localStorage.setItem('test_key', '1');
+                localStorage.removeItem('test_key');
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function showToast(title, msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastTitle = document.getElementById('toast-title');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastTitle.innerText = title;
+            toastMsg.innerText = msg;
+
+            if (type === 'error') {
+                toastIcon.className = "w-8 h-8 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center flex-shrink-0";
+                toastIcon.innerText = "✕";
+            } else if (type === 'info') {
+                toastIcon.className = "w-8 h-8 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center flex-shrink-0";
+                toastIcon.innerText = "i";
+            } else {
+                toastIcon.className = "w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0";
+                toastIcon.innerText = "✓";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function log(msg) {
+            const out = document.getElementById('console-output');
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.innerHTML = `<span class="text-sky-400">[${time}]</span> ${escapeHtml(msg)}`;
+            out.appendChild(div);
+            out.scrollTop = out.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('console-output').innerHTML = '<div class="text-slate-500">[Sistema] Log limpiado.</div>';
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>
