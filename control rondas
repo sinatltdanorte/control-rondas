@@ -273,7 +273,7 @@
                     });
 
                 } catch (error) {
-                    log(`[NFC Error] ${error.name}: ${error.message}`);
+                    log(`[NFC Error] ${error.name}:${error.message}`);
                     showToast("Error de acceso", "Permiso de NFC denegado o desactivado", "error");
                 }
             } else {
@@ -291,12 +291,12 @@
         async function recordCheckIn(tagID) {
             triggerFeedback();
             const now = new Date();
-            const formattedDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+            const formattedDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
             
             let coords = "Buscando GPS...";
             try {
                 const pos = await getCurrentLocation();
-                coords = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+                coords = `${pos.coords.latitude.toFixed(5)},${pos.coords.longitude.toFixed(5)}`;
             } catch (err) {
                 coords = "GPS no disponible";
             }
@@ -316,7 +316,7 @@
             updateLastScanCard(record);
             renderTable();
             showToast("Marcación Exitosa", `${tagID}`, "success");
-            log(`[Exito] Marcación registrada: ${tagID} [GPS: ${coords}]`);
+            log(`[Exito] Marcación registrada: ${tagID} [GPS:${coords}]`);
         }
 
         function getCurrentLocation() {
@@ -464,7 +464,7 @@
             const out = document.getElementById('console-output');
             const time = new Date().toLocaleTimeString();
             const div = document.createElement('div');
-            div.innerHTML = `<span class="text-sky-400">[${time}]</span> ${escapeHtml(msg)}`;
+            div.innerHTML = `<span class="text-sky-400">[${time}]</span>${escapeHtml(msg)}`;
             out.appendChild(div);
             out.scrollTop = out.scrollHeight;
         }
