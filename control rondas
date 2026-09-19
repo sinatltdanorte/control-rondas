@@ -54,17 +54,19 @@
         .console-log { font-family: 'JetBrains Mono', monospace; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans pb-10 antialiased selection:bg-brand-500 selection:text-white">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans p-4 sm:p-6 pb-10 antialiased selection:bg-brand-500 selection:text-white">
 
-    <!-- Header / Navbar -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+    <!-- Main Content -->
+    <main class="max-w-3xl w-full mx-auto space-y-6">
+
+        <!-- Top Card: Control de Vigilancia -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-sm font-bold text-lg">
                     <i data-lucide="shield-check" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <h1 class="text-base font-bold text-slate-900 leading-tight">Control de Vigilancia</h1>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">Control de Vigilancia</h1>
                     <p class="text-xs text-slate-500 font-medium">Marcación NFC & Diagnóstico Móvil</p>
                 </div>
             </div>
@@ -72,11 +74,7 @@
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span id="nfc-status-text">Detectando OS...</span>
             </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-3xl w-full mx-auto p-4 sm:p-6 space-y-6">
+        </section>
 
         <!-- NFC Action Card -->
         <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-center relative overflow-hidden">
@@ -273,7 +271,7 @@
                     });
 
                 } catch (error) {
-                    log(`[NFC Error] ${error.name}:${error.message}`);
+                    log(`[NFC Error] ${error.name}: ${error.message}`);
                     showToast("Error de acceso", "Permiso de NFC denegado o desactivado", "error");
                 }
             } else {
@@ -291,12 +289,12 @@
         async function recordCheckIn(tagID) {
             triggerFeedback();
             const now = new Date();
-            const formattedDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+            const formattedDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
             
             let coords = "Buscando GPS...";
             try {
                 const pos = await getCurrentLocation();
-                coords = `${pos.coords.latitude.toFixed(5)},${pos.coords.longitude.toFixed(5)}`;
+                coords = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
             } catch (err) {
                 coords = "GPS no disponible";
             }
@@ -316,7 +314,7 @@
             updateLastScanCard(record);
             renderTable();
             showToast("Marcación Exitosa", `${tagID}`, "success");
-            log(`[Exito] Marcación registrada: ${tagID} [GPS:${coords}]`);
+            log(`[Éxito] Marcación registrada: ${tagID} [GPS: ${coords}]`);
         }
 
         function getCurrentLocation() {
@@ -464,7 +462,7 @@
             const out = document.getElementById('console-output');
             const time = new Date().toLocaleTimeString();
             const div = document.createElement('div');
-            div.innerHTML = `<span class="text-sky-400">[${time}]</span>${escapeHtml(msg)}`;
+            div.innerHTML = `<span class="text-sky-400">[${time}]</span> ${escapeHtml(msg)}`;
             out.appendChild(div);
             out.scrollTop = out.scrollHeight;
         }
